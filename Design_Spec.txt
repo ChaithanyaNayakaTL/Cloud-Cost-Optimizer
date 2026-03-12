@@ -1,0 +1,183 @@
+Cloud Cost Optimisation Advisor Final Hybrid API Design Specification
+(Senior Architecture Version)
+=====================================================================
+
+1. API Design Philosophy
+
+The API is designed as a stateless, RESTful interface that cleanly
+separates authentication, data ingestion, normalization, analytics, and
+recommendation generation.
+
+Core Principles: - Versioned endpoints (/api/v1/) - Stateless request
+processing - JWT-protected routes - Hybrid ingestion support -
+Deterministic analytics pipeline - Structured error responses -
+Extensible design for multi-cloud support
+
+2. Base URLs
+
+Production: https:///api/v1/
+
+Local: http://localhost:8000/api/v1/
+
+3. Authentication & Authorization Model
+
+Authentication Provider: - Firebase Authentication
+
+Flow: 1. User authenticates via Firebase (React SDK) 2. Firebase issues
+JWT token 3. Frontend attaches token:
+
+Authorization: Bearer
+
+4.  FastAPI middleware verifies token using Firebase Admin SDK
+
+Protected Routes: - All endpoints except /health require valid JWT
+
+Failure Handling: - Invalid or missing JWT → HTTP 401 Unauthorized -
+Expired token → HTTP 401 Unauthorized
+
+4. Standard Response Structure
+
+Success Response: { “status”: “success”, “data”: { … }, “metadata”: { …
+} }
+
+Error Response: { “status”: “error”, “error”: { “code”: “ERROR_CODE”,
+“message”: “Human readable explanation” } }
+
+5. Core Endpoints
+
+5.1 Health Check
+
+GET /health
+
+Purpose: - Service availability verification - Monitoring integration -
+No authentication required
+
+Response: { “status”: “success”, “data”: { “service”:
+“cloud-cost-advisor”, “version”: “1.0.0”, “status”: “running” } }
+
+5.2 Hybrid Analysis Endpoint
+
+POST /analyze
+
+Auth Required: Yes
+
+Purpose: - Unified endpoint supporting LIVE and UPLOAD ingestion modes
+
+Request Body (LIVE Mode): { “data_source”: “LIVE”, “start_date”:
+“YYYY-MM-DD”, “end_date”: “YYYY-MM-DD” }
+
+Request Body (UPLOAD Mode): multipart/form-data { “data_source”:
+“UPLOAD”, “file”: <billing_report.csv> }
+
+Processing Steps: 1. Validate JWT 2. Validate request payload 3.
+Instantiate appropriate DataSource 4. Normalize dataset 5. Run analytics
+engine 6. Generate recommendations 7. Return structured output
+
+Response: { “status”: “success”, “data”: { “summary”: { … },
+“cost_breakdown”: [ … ], “recommendations”: [ … ] }, “metadata”: {
+“data_source”: “LIVE | UPLOAD”, “analysis_timestamp”: “ISO_TIMESTAMP” }
+}
+
+5.3 Cost Summary
+
+GET /summary?start_date=&end_date=
+
+Auth Required: Yes
+
+Purpose: - Returns aggregated cost metrics
+
+Response: { “status”: “success”, “data”: { “total_cost”: 1243.55,
+“average_daily_cost”: 41.45, “top_service”: “Amazon EC2”,
+“top_service_cost”: 650.12 } }
+
+5.4 Cost Breakdown
+
+GET /cost-breakdown?start_date=&end_date=
+
+Auth Required: Yes
+
+Purpose: - Returns service-level cost distribution
+
+Response: { “status”: “success”, “data”: [ { “service”: “Amazon EC2”,
+“cost”: 650.12, “percentage”: 52.3 } ] }
+
+5.5 Recommendations
+
+GET /recommendations?start_date=&end_date=
+
+Auth Required: Yes
+
+Purpose: - Returns advisory optimization recommendations
+
+Response: { “status”: “success”, “data”: [ { “resource_id”:
+“i-1234567890”, “issue_type”: “Low Utilization”, “suggested_action”:
+“Downsize instance”, “estimated_monthly_savings”: 85.50, “risk_level”:
+“Low”, “explanation”: “CPU utilization below threshold” } ], “metadata”:
+{ “total_estimated_savings”: 245.75 } }
+
+6. Validation Rules
+
+Date Validation: - start_date ≤ end_date - Maximum 12-month range - ISO
+format required
+
+Upload Validation: - CSV schema validation required - File size limit
+enforced - No unsupported formats
+
+Failure Codes: 400 – Invalid parameters 401 – Unauthorized 413 – Payload
+too large 422 – Invalid CSV schema 429 – Rate limit exceeded 500 –
+Internal error 503 – AWS API failure
+
+7. Middleware Components
+
+Authentication Middleware: - Extract Authorization header - Verify JWT -
+Attach user context
+
+Exception Middleware: - Catch unhandled exceptions - Return structured
+error object - Hide internal stack traces
+
+Logging Middleware: - Log request metadata - Log ingestion mode - Log
+execution duration
+
+8. Performance Targets
+
+-   <5 seconds for fresh hybrid analysis
+-   <500ms for cached summary queries
+-   Upload size limit configurable
+-   JSON response size <1MB
+
+9. Security Considerations
+
+-   Firebase-managed identity lifecycle
+-   Read-only IAM role for AWS access
+-   No cloud credentials exposed
+-   No file persistence on server
+-   HTTPS-only deployment
+-   Strict input validation
+
+10. Versioning Strategy
+
+-   URL-based versioning (/api/v1/)
+-   Backward compatibility maintained within version
+-   Breaking changes require /api/v2/
+
+11. Extensibility Roadmap
+
+-   AzureLiveDataSource integration
+-   Historical analysis storage
+-   Export endpoint (CSV/PDF)
+-   Role-based access control
+-   Rate limiting via Redis
+-   Scheduled background analysis
+
+12. Architectural Strength Summary
+
+-   Unified hybrid ingestion endpoint
+-   Strategy-pattern-backed ingestion layer
+-   Dedicated normalization boundary
+-   Stateless scalable backend
+-   Secure JWT authentication
+-   Deterministic advisory engine
+-   Multi-cloud ready foundation
+-   Interview-defendable API design
+
+End of Document

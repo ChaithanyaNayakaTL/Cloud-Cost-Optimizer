@@ -1,0 +1,147 @@
+Cloud Cost Optimisation Advisor Deep Design: Normalization Layer
+=================================
+
+1. Purpose of the Normalization Layer
+
+The Normalization Layer is the architectural boundary that decouples
+data ingestion from analytics.
+
+Its responsibility is to convert heterogeneous input formats (AWS Cost
+Explorer API responses and billing CSV exports) into a unified internal
+domain model: NormalizedCostDataset.
+
+This layer ensures: - Analytics engine remains data-source agnostic -
+Hybrid ingestion does not affect downstream logic - Extensibility for
+future providers (Azure, GCP) - Deterministic behavior across ingestion
+types
+
+2. Design Philosophy
+
+-   Single Responsibility: Only transform and validate data.
+-   No analytics logic allowed.
+-   No cloud SDK logic allowed.
+-   Deterministic transformation.
+-   Strict schema enforcement.
+-   Fail-fast on invalid structure.
+
+3. Input Variants
+
+Variant A: AWS Cost Explorer API (Nested JSON) Characteristics: -
+Grouped by time period - Grouped by service/usage type - Nested metrics
+structure - Multiple granularity levels
+
+Variant B: AWS/Azure Billing CSV Export Characteristics: - Flat tabular
+structure - Large number of columns - May include unused metadata
+fields - Potentially very large file sizes
+
+4. Unified Internal Model
+
+NormalizedCostDataset
+
+Fields: - service (string) - region (string | nullable) - usage_type
+(string | nullable) - usage_amount (float) - cost_amount (float) -
+timestamp (date)
+
+Optional metadata: - source_type (LIVE | UPLOAD) - ingestion_timestamp
+
+Design Rule: Every ingestion path MUST produce this structure before
+analytics begins.
+
+5. Transformation Pipeline
+
+Step 1: Schema Detection - Identify data source type - Validate presence
+of required fields - Map external field names to internal schema
+
+Step 2: Column Mapping - Map provider-specific fields to internal model
+Example: AWS JSON: Groups[].Keys[0] → service CSV: “ProductName” →
+service
+
+Step 3: Type Coercion - Convert cost_amount to float - Convert
+usage_amount to float - Convert timestamps to ISO date
+
+Step 4: Data Cleaning - Remove null cost entries - Drop negative cost
+values (unless refunds explicitly supported) - Normalize service naming
+inconsistencies
+
+Step 5: Validation Rules - No missing cost_amount - timestamp within
+valid date range - usage_amount ≥ 0
+
+Step 6: Output Construction - Return NormalizedCostDataset object - Log
+transformation metadata
+
+6. Error Handling Strategy
+
+Invalid CSV Schema: - Return HTTP 422 Unprocessable Entity - Provide
+explicit missing column list
+
+Invalid Data Types: - Attempt safe coercion - If impossible → structured
+validation error
+
+Large File Handling: - Enforce max upload size - Optional streaming
+parsing for scalability
+
+Partial Data: - Log warnings - Continue processing valid rows
+
+7. Security Considerations
+
+CSV Injection Protection: - Escape formula-like prefixes (=, +, -, @) -
+Sanitize string inputs
+
+File Size Limits: - Enforce max upload size - Reject excessively large
+payloads
+
+Memory Management: - Avoid loading extremely large files fully in memory
+(future streaming optimization)
+
+No Persistent File Storage: - Process in memory only - Discard raw file
+after transformation
+
+8. Performance Considerations
+
+Current Model: - In-memory Pandas processing - Suitable for moderate
+dataset sizes
+
+Future Optimization: - Chunk-based parsing - Streaming normalization -
+Parallel processing for large datasets
+
+9. Extensibility Strategy
+
+To add AzureLiveDataSource: - Implement ingestion adapter - Map Azure
+billing fields to unified schema - Reuse normalization rules
+
+To add GCP: - Same pattern applies
+
+Normalization remains constant. Analytics remains untouched.
+
+10. Architectural Benefits
+
+-   Clear ingestion boundary
+-   Pluggable data sources
+-   Reduced coupling
+-   Testable transformation layer
+-   Deterministic unit testing
+-   Future multi-cloud ready
+
+11. Why This Layer Is Critical
+
+Without normalization: - Analytics becomes tightly coupled to provider
+format - Code duplication increases - Hybrid ingestion creates technical
+debt
+
+With normalization: - Clean architecture - Strategy pattern enforced -
+Interview-defendable system design - Enterprise-grade extensibility
+
+12. Interview Defense Summary
+
+If asked:
+
+“How do you handle different billing formats?”
+
+Answer:
+
+“We introduced a dedicated normalization layer that converts
+heterogeneous billing formats into a unified domain model before
+analytics begins. This isolates provider-specific complexity and keeps
+downstream logic deterministic and extensible.”
+
+End of Document

@@ -1,0 +1,160 @@
+Cloud Cost Optimisation Advisor Final Hybrid Product Requirements
+Document (PRD) ================================================
+
+1. Executive Summary
+
+Cloud Cost Optimisation Advisor is a secure, multi-user, hybrid cloud
+analytics platform that provides advisory cost optimization insights.
+
+The system supports two ingestion modes: 1. LIVE Mode – Direct
+integration with AWS Cost Explorer API. 2. UPLOAD Mode – Offline billing
+dataset ingestion (CSV exports from AWS/Azure).
+
+Authentication is handled by Firebase (JWT-based). The backend validates
+identity and processes analysis requests securely. The system is
+advisory-only and does not perform automated infrastructure changes.
+
+Target Outcome: Deliver explainable, reliable cost optimization insights
+through a modular, extensible, and interview-defendable system
+architecture.
+
+2. Problem Statement
+
+Cloud environments frequently accumulate unused or underutilized
+resources, resulting in cost inefficiencies. Existing native tools are
+fragmented and lack flexible ingestion options or deterministic testing
+capability.
+
+Key Problems Addressed: - Lack of centralized cost visibility - Limited
+explainable recommendations - Difficulty demonstrating analytics without
+live cloud credentials - Need for extensible multi-cloud support
+
+Hybrid ingestion solves both live operational analysis and offline
+dataset evaluation.
+
+3. Product Vision
+
+Build a pluggable cost analytics platform where the analytics engine is
+independent of the data source.
+
+Core Design Principle: After normalization, all ingestion sources
+produce a unified internal data model consumed by the same analytics
+pipeline.
+
+4. Goals & Non-Goals
+
+Goals: - Multi-user authentication via Firebase - Secure JWT validation
+in FastAPI - Hybrid ingestion (Live AWS + Uploaded Billing Dataset) -
+Strategy-pattern-based ingestion abstraction - Unified normalization
+layer - Rule-based recommendation engine - Clean React-based dashboard -
+Free-tier deployment architecture
+
+Non-Goals: - Automatic infrastructure modification - Storing AWS
+credentials per user - Real-time streaming analytics - ML-driven
+prediction in v1
+
+5. Target Users
+
+-   Developers optimizing personal AWS accounts
+-   Startup engineering teams
+-   Cloud learners
+-   Interview evaluators reviewing system design depth
+
+6. Functional Requirements
+
+6.1 Authentication - Firebase Email/Password and Google login - JWT
+issued on successful login - Backend JWT verification middleware -
+Protected API routes
+
+6.2 Data Ingestion (Hybrid Mode)
+
+Mode A: LIVE - Fetch AWS Cost Explorer data using boto3 - Support
+date-range filtering - Handle pagination, throttling, and retries
+
+Mode B: UPLOAD - Accept CSV billing export file - Validate schema -
+Enforce file size limits - Prevent CSV injection - Parse and normalize
+dataset safely
+
+6.3 Normalization Layer - Convert all ingestion outputs into:
+NormalizedCostDataset: * service * region * usage_type * usage_amount *
+cost_amount * timestamp
+
+6.4 Analytics Processing - Aggregate cost by service and time - Identify
+underutilized resources - Detect cost concentration - Estimate monthly
+savings
+
+6.5 Recommendation Engine Each recommendation includes: - Resource ID -
+Issue type - Suggested action - Estimated monthly savings - Risk level -
+Explanation
+
+6.6 API Endpoints - POST /api/v1/analyze - GET /api/v1/summary - GET
+/api/v1/cost-breakdown - GET /api/v1/recommendations - GET
+/api/v1/health
+
+6.7 Frontend Pages - / (Landing + Mode Selector) - /dashboard -
+/breakdown - /recommendations - Loading State - /error
+
+7. Non-Functional Requirements
+
+Performance: - <5 seconds analysis time for moderate datasets - <500ms
+response for cached queries
+
+Scalability: - Stateless backend - Horizontal scaling supported -
+Ingestion strategy easily extensible
+
+Security: - JWT validation middleware - Read-only IAM permissions -
+Environment-based secret management - File upload size restriction -
+HTTPS-only deployment
+
+Reliability: - Structured logging - Retry strategy for AWS API -
+Graceful handling of malformed datasets
+
+8. System Constraints
+
+-   No persistent storage required in v1
+-   Memory-based processing for analytics
+-   Free-tier hosting limitations
+-   Dataset size limits enforced for stability
+
+9. Risks & Mitigation
+
+Risk: CSV schema mismatch Mitigation: Strict validation and column
+mapping rules
+
+Risk: AWS API throttling Mitigation: Exponential backoff
+
+Risk: Large file upload memory overload Mitigation: File size limit +
+streaming parse
+
+Risk: False-positive recommendations Mitigation: Conservative heuristic
+thresholds and risk tagging
+
+10. Success Metrics
+
+-   Accurate cost aggregation
+-   Consistent results across live and uploaded datasets
+-   Secure JWT-protected API
+-   Clear recommendation explanations
+-   Modular, maintainable codebase
+
+11. Future Enhancements
+
+-   AzureLiveDataSource implementation
+-   Persistent PostgreSQL layer
+-   Historical comparison
+-   Scheduled background analysis
+-   Role-based access control
+-   Anomaly detection module
+-   Export functionality (CSV/PDF)
+
+12. Architectural Strength Summary
+
+-   Hybrid ingestion via strategy pattern
+-   Unified normalization layer
+-   Stateless and horizontally scalable backend
+-   Secure authentication boundary
+-   Advisory-only safe execution
+-   Extensible to multi-cloud support
+-   Production-realistic and interview-ready design
+
+End of Document

@@ -1,0 +1,176 @@
+Cloud Cost Optimisation Advisor Final Hybrid System Architecture
+Document ===========================================
+
+1. Architecture Overview
+
+The system is a multi-user, stateless, API-first cloud analytics
+platform that supports hybrid data ingestion: - LIVE Mode (AWS Cost
+Explorer API) - UPLOAD Mode (Billing Report Dataset)
+
+Authentication is managed by Firebase (JWT-based). The backend validates
+tokens and processes requests securely. The analytics pipeline remains
+independent of data source via an abstraction layer.
+
+Architecture Style: - Client-Server - RESTful API - Stateless
+processing - Strategy Pattern for data ingestion - Advisory-only
+execution model
+
+2. High-Level Architecture Components
+
+Frontend Layer (React SPA) - Single Page Application - Firebase
+Authentication SDK - Mode Selector (Live AWS / Upload Billing File) -
+Sends JWT in Authorization header - Sends analysis request with
+data_source_type
+
+Authentication Layer (Firebase) - Email/Password & Google login - Issues
+JWT tokens - Public key-based verification
+
+API Layer (FastAPI) - Versioned endpoints (/api/v1/) - JWT validation
+middleware - Pydantic request validation - Centralized exception
+handling
+
+Data Ingestion Layer (Strategy Pattern)
+
+AbstractDataSource - fetch() → returns NormalizedCostDataset
+
+Implementations: 1. LiveAWSDataSource - Uses boto3 - Calls AWS Cost
+Explorer API - Handles pagination, throttling, retries - Converts nested
+JSON to normalized dataset
+
+2.  UploadedFileDataSource
+    -   Accepts CSV file
+    -   Validates schema
+    -   Parses large files safely
+    -   Normalizes columns to unified structure
+
+Normalization Layer
+
+Responsible for converting all ingestion outputs into a unified internal
+model:
+
+NormalizedCostDataset: - service - region - usage_type - usage_amount -
+cost_amount - timestamp
+
+This ensures analytics logic remains data-source agnostic.
+
+Analytics Layer (Pandas)
+
+-   Converts NormalizedCostDataset to DataFrame
+-   Performs:
+    -   Aggregations
+    -   Cost breakdown
+    -   Time-series calculations
+    -   Heuristic-based waste detection
+-   Generates intermediate metrics
+
+Recommendation Engine
+
+-   Applies deterministic rules
+-   Produces structured Recommendation objects:
+    -   resource_id
+    -   issue_type
+    -   suggested_action
+    -   estimated_savings
+    -   risk_level
+    -   explanation
+
+Cloud Integration Layer
+
+-   AWS boto3 (Cost Explorer API)
+-   Read-only IAM permissions
+-   Environment-based credentials
+
+Deployment Layer
+
+-   Render.com Backend: Web Service Frontend: Static Site
+-   Environment variables for secrets
+-   HTTPS enforced
+
+3. End-to-End Data Flow (Hybrid Mode)
+
+User → React SPA ↓ Firebase Auth (JWT Issuance) ↓ FastAPI API Layer (JWT
+Validation) ↓ DataIngestionLayer ↓ Normalization Layer ↓ Pandas
+Analytics Engine ↓ Recommendation Engine ↓ JSON Response ↓ React UI
+Rendering
+
+Key Principle: After normalization, the analytics pipeline is identical
+regardless of ingestion source.
+
+4. API Flow for Hybrid Ingestion
+
+POST /api/v1/analyze
+
+Case 1: LIVE Mode { “data_source”: “LIVE”, “start_date”: “YYYY-MM-DD”,
+“end_date”: “YYYY-MM-DD” }
+
+Case 2: UPLOAD Mode multipart/form-data { “data_source”: “UPLOAD”,
+“file”: billing_report.csv }
+
+Backend: 1. Validate JWT 2. Identify data_source_type 3. Instantiate
+corresponding DataSource 4. Fetch normalized dataset 5. Run analytics 6.
+Return structured result
+
+5. Security Architecture
+
+Authentication: - Firebase JWT verification middleware
+
+Authorization: - Protected routes require valid JWT
+
+Cloud Credentials: - Stored in environment variables - Read-only IAM
+role
+
+File Upload Security: - Max file size limit enforced - Schema validation
+required - CSV injection prevention - No file system persistence
+(processed in memory)
+
+Transport Security: - HTTPS only
+
+6. Scalability Strategy
+
+Current Model: - Stateless API - In-memory batch analytics - No session
+persistence
+
+Horizontal Scaling: - Multiple API instances supported - No shared state
+required
+
+Future Enhancements: - Redis caching layer - PostgreSQL persistence
+layer - Background processing (Celery) - Scheduled analysis jobs
+
+7. Failure Handling Strategy
+
+Invalid JWT → 401 Unauthorized Invalid date range → 400 Bad Request
+Invalid CSV schema → 422 Unprocessable Entity AWS API throttling → Retry
+with exponential backoff Large file upload → 413 Payload Too Large
+Unexpected error → 500 Structured error response
+
+8. Design Tradeoffs
+
+Hybrid ingestion adds: - Schema normalization complexity - Additional
+validation logic - Slightly more UI complexity
+
+Benefits: - Demo-friendly without AWS credentials - Deterministic
+testing with fixed datasets - Extensible to Azure via file export -
+Stronger architectural abstraction - Interview-ready strategy pattern
+implementation
+
+9. Why This Architecture Is Strong
+
+-   Clean separation of concerns
+-   Pluggable ingestion strategy
+-   Stateless and horizontally scalable
+-   Secure JWT boundary
+-   No secret storage per user
+-   Advisory-only safe model
+-   Easily extensible to multi-cloud
+-   Production-realistic design
+
+10. Future Extensions
+
+-   AzureLiveDataSource implementation
+-   Historical analysis comparison
+-   Persistent AnalysisSession storage
+-   Role-based access control
+-   Export (CSV/PDF)
+-   Anomaly detection module
+
+End of Document

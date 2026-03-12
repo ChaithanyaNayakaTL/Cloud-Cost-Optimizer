@@ -1,0 +1,168 @@
+Cloud Cost Optimisation Advisor Final Hybrid Tech Stack Document (Senior
+Architecture Version)
+================================================================
+
+1. Architectural Overview
+
+The system is a secure, multi-user, hybrid cloud analytics platform
+designed with modular boundaries and clean separation of concerns.
+
+Core Characteristics: - Client-Server architecture - RESTful API
+design - Stateless backend - Strategy-pattern-based ingestion -
+Dedicated normalization layer - Advisory-only execution model -
+Extensible multi-cloud design
+
+The tech stack reflects production-grade patterns while remaining
+deployable on free-tier infrastructure.
+
+2. Frontend Stack
+
+Framework: - React (JavaScript) - SPA architecture - Component-based
+UI - React Router for route management
+
+Authentication: - Firebase Authentication (Client SDK) - Email/Password
+login - Google OAuth login - JWT token issuance
+
+State & Networking: - Axios or Fetch API for HTTP communication - JWT
+stored securely in memory/local storage - Protected route guards
+
+Visualization: - Recharts or Chart.js - Time-series graphs - Cost
+breakdown pie charts - Interactive filtering
+
+UI/Styling: - Tailwind CSS or modern CSS modules - Responsive layout
+design
+
+Deployment: - Render.com Static Site (Free Tier)
+
+3. Backend Stack
+
+Framework: - FastAPI (Python) - Async support - Pydantic validation -
+Automatic OpenAPI documentation - Dependency injection
+
+Authentication: - Firebase Admin SDK (Python) - JWT verification
+middleware - Token parsing from Authorization header
+
+API Design: - Versioned endpoints (/api/v1/) - Centralized exception
+handling - Structured JSON responses
+
+Deployment: - Render.com Web Service (Free Tier) - Environment
+variable-based configuration
+
+4. Data Ingestion Layer (Hybrid Strategy Pattern)
+
+Abstract Interface: - AbstractDataSource fetch() → returns
+NormalizedCostDataset
+
+Implementations: 1. LiveAWSDataSource - boto3 SDK - AWS Cost Explorer
+API - Pagination handling - Retry with exponential backoff
+
+2.  UploadedFileDataSource
+    -   CSV parsing (Pandas)
+    -   Schema validation
+    -   File size limit enforcement
+    -   In-memory processing
+
+Design Outcome: - Analytics engine remains independent of ingestion
+source - Easy extension for AzureLiveDataSource in future
+
+5. Normalization Layer
+
+Purpose: - Convert heterogeneous input formats into unified internal
+schema
+
+Unified Domain Model: NormalizedCostDataset: - service - region -
+usage_type - usage_amount - cost_amount - timestamp
+
+Responsibilities: - Schema detection - Column mapping - Type coercion -
+Data cleaning - Validation enforcement
+
+Security Measures: - CSV injection prevention - File size limits - No
+raw file persistence
+
+Architectural Impact: - Reduces coupling - Enables deterministic
+testing - Supports multi-cloud expansion
+
+6. Analytics Engine
+
+Primary Tool: - Pandas
+
+Capabilities: - Aggregation by service - Time-series computation -
+Utilization heuristics - Cost distribution analysis - Savings estimation
+
+Processing Model: - In-memory batch analytics - Stateless per request
+
+Future Replaceability: - SQL-based processing - Apache Spark -
+Distributed compute model
+
+7. Recommendation Engine
+
+Type: - Deterministic rule-based engine
+
+Outputs: - Resource ID - Issue type - Suggested action - Estimated
+monthly savings - Risk level - Explanation
+
+Design Philosophy: - Explainable logic - Conservative thresholds - No
+automated execution
+
+8. Cloud Integration
+
+Provider: - AWS
+
+SDK: - boto3
+
+API: - Cost Explorer (get_cost_and_usage)
+
+Security: - Read-only IAM role - Credentials stored in environment
+variables - No exposure to frontend
+
+9. DevOps & Infrastructure
+
+Hosting: - Render.com (Free Tier)
+
+Environment Configuration: - AWS credentials - Firebase service account
+config - Application secrets
+
+CI/CD: - GitHub auto-deploy integration
+
+Logging: - Python logging module - Structured logs
+
+Monitoring: - Health endpoint (/api/v1/health)
+
+Transport Security: - HTTPS enforced
+
+10. Security Stack
+
+Authentication: - Firebase-managed identity lifecycle
+
+Authorization: - JWT verification middleware
+
+Cloud Security: - Read-only IAM permissions
+
+Upload Security: - File size enforcement - Schema validation - Input
+sanitization
+
+Secret Management: - Environment variables only - No secrets in codebase
+
+11. Scalability Strategy
+
+Current: - Single stateless API instance - In-memory analytics
+
+Horizontal Scaling: - Multiple backend instances supported - No shared
+session state
+
+Future Enhancements: - Redis caching - PostgreSQL persistence -
+Background processing (Celery) - Scheduled analytics jobs
+
+12. Why This Tech Stack Is Strong
+
+-   Modular and extensible architecture
+-   Hybrid ingestion capability
+-   Strategy-pattern-based design
+-   Unified normalization layer
+-   Secure authentication boundary
+-   Stateless and horizontally scalable
+-   Free-tier deployable
+-   Interview-defendable design decisions
+-   Multi-cloud expansion ready
+
+End of Document
