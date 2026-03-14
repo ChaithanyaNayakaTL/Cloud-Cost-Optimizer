@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: cloud-cost-advisor-backend
+    env: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+
+staticSites:
+  - name: cloud-cost-advisor-frontend
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    publishPath: "dist"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: cloud-cost-advisor-backend
+          envVarKey: RENDER_EXTERNAL_URL
