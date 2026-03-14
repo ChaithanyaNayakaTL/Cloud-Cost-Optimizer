@@ -9,11 +9,12 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.0
 
-staticSites:
-  - name: cloud-cost-advisor-frontend
+  - type: web
+    name: cloud-cost-advisor-frontend
+    env: static
     rootDir: frontend
     buildCommand: "npm install && npm run build"
-    publishPath: "dist"
+    staticPublishPath: "dist"
     routes:
       - type: rewrite
         source: /*
